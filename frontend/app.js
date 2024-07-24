@@ -6,11 +6,11 @@ document.addEventListener('DOMContentLoaded', () => {
         <div id="data"></div>
     `;
 
-    document.getElementById('fetch-data').addEventListener('click', () => {
-        fetch('/api/some-endpoint')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('data').innerHTML = JSON.stringify(data);
-            });
-    });
+    // document.getElementById('fetch-data').addEventListener('click', () => {
+    //     fetch('/api/some-endpoint')
+    //         .then(response => response.json())
+    //         .then(data => {
+    //             document.getElementById('data').innerHTML = JSON.stringify(data);
+    //         });
+    // });
 });
