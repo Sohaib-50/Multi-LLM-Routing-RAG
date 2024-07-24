@@ -15,12 +15,15 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, re_path
+from django.urls import path, re_path, include
 from django.views.generic import TemplateView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
 
-    # Route all paths to the SPA
-    re_path(r'^.*$', TemplateView.as_view(template_name='index.html')),
+    # API routes
+    path('api/', include('app.urls')),
+
+    # SPA serving route (all endpoints not matched)
+    re_path(r'^.*$', TemplateView.as_view(template_name='index.html'), name='home'),
 ]

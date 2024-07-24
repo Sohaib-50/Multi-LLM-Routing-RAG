@@ -1,3 +1,10 @@
-from django.shortcuts import render
+# api/views.py
 
-# Create your views here.
+from django.http import JsonResponse
+
+def example_view(request):
+    data = {
+        'message': 'Hello, this is an example view!',
+    }
+    print(JsonResponse(data))
+    return JsonResponse(data)
