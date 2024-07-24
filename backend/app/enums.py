@@ -11,3 +11,13 @@ class OptimizationMetric(str, Enum):
     PRICE = "price"
     LATENCY = "latency"
     PERFORMANCE = "performance"
+
+
+class Role(str, Enum):
+    SYSTEM = "system"
+    USER = "user"
+    AI = "AI"
+
+
+
+print([(role.value, role.name) for role in Role])
