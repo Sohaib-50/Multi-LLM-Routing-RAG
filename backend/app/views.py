@@ -3,6 +3,9 @@
 from django.http import JsonResponse
 from app.models import Chat, Message
 
+def example_view(request):
+    return JsonResponse({"message": "Hello, World!"})
+
 def get_chat(request, chat_id):
     chat = Chat.objects.get(id=chat_id)
     messages = [

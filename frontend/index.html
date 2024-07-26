@@ -2,16 +2,200 @@
 
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SPA Example</title>
-    <link rel="stylesheet" href="{% static 'style.css' %}">
-</head>
-<body>
-    
-    <div id="app"></div>
+    <title>Multi LLM Routing RAG</title>
 
+    <!-- Bootstrap CDN -->
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles -->
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+
+</head>
+
+<body>
+    <div id="header" onclick="location.reload();">Multi LLM Routing RAG</div>
+
+    <div class="container">
+        <div id="chat-interface">
+            <div id="chat-header">
+                <div id="chat-name">Chat 1</div>
+                <a href="#" data-toggle="modal" data-target="#data-source-modal">Data Source</a>
+            </div>
+            <div id="chat-messages">
+
+                {% for i in "1234" %}
+                <div class="message ai">
+                    <div class="author">AI</div>
+                    Hello, how can I assist you today?
+                </div>
+                <div class="message user">
+                    <div class="author">User</div>
+                    I have a question about your services.
+                </div>
+                <div class="message ai">
+                    <div class="author">AI</div>
+                    Sure, feel free to ask!
+                </div>
+                <div class="message user">
+                    <div class="author">User</div>
+                    Can you explain the pricing?
+                </div>
+                <div class="message ai">
+                    <div class="author">AI</div>
+                    Our pricing varies based on the service.
+                </div>
+                <div class="message user">
+                    <div class="author">User</div>
+                    I see. Can you provide more details?
+                </div>
+                <div class="message ai">
+                    <div class="author">AI</div>
+                    Absolutely, I can provide a breakdown.
+                </div>
+                <div class="message user">
+                    <div class="author">User</div>
+                    Great, I'd appreciate that.
+                </div>
+                <div class="message ai">
+                    <div class="author">AI</div>
+                    No problem, I will send you the details.
+                </div>
+                <div class="message user">
+                    <div class="author">User</div>
+                    Thank you!
+                </div>
+                {% endfor %}
+
+            </div>
+            <div id="chat-box">
+                <textarea id="chat-textarea" rows="3" placeholder="Type your message..."></textarea>
+                <button id="send-button" class="btn btn-secondary">Send</button>
+            </div>
+        </div>
+
+        <div id="chats-list">
+            <h4>Chats</h4>
+            <hr>
+
+            <button id="new-chat-button" class="btn btn-secondary" data-toggle="modal" data-target="#new-chat-modal">+
+                New Chat</button>
+
+            {% for i in "123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ" %}
+            <div class="chat-item">
+                <div class="chat-name">Chat {{ i }}</div>
+                <div class="chat-date">2024-07-{{ i }}</div>
+            </div>
+            {% endfor %}
+            <div class="chat-item">
+                <div class="chat-name">Chat 1</div>
+                <div class="chat-date">2024-07-25</div>
+            </div>
+            <div class="chat-item">
+                <div class="chat-name">Chat 2</div>
+                <div class="chat-date">2024-07-24</div>
+            </div>
+            <div class="chat-item">
+                <div class="chat-name">Chat 3</div>
+                <div class="chat-date">2024-07-23</div>
+            </div>
+            <div class="chat-item">
+                <div class="chat-name">Chat 4</div>
+                <div class="chat-date">2024-07-22</div>
+            </div>
+            <div class="chat-item">
+                <div class="chat-name">Chat 5</div>
+                <div class="chat-date">2024-07-21</div>
+            </div>
+            <div class="chat-item">
+                <div class="chat-name">Chat 6</div>
+                <div class="chat-date">2024-07-20</div>
+            </div>
+            <div class="chat-item">
+                <div class="chat-name">Chat 7</div>
+                <div class="chat-date">2024-07-19</div>
+            </div>
+            <div class="chat-item">
+                <div class="chat-name">Chat 8</div>
+                <div class="chat-date">2024-07-18</div>
+            </div>
+            <div class="chat-item">
+                <div class="chat-name">Chat 9</div>
+                <div class="chat-date">2024-07-17</div>
+            </div>
+            <div class="chat-item">
+                <div class="chat-name">Chat 10</div>
+                <div class="chat-date">2024-07-16</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Data Source Modal -->
+    <div class="modal fade" id="data-source-modal" tabindex="-1" role="dialog" aria-labelledby="data-source-modal-label"
+        aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="data-source-modal-label">Data Source Information</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>The data source for this chat is as follows:</p>
+                    <p><strong>Data Source:</strong> This is where the AI pulls information from to generate responses.
+                    </p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Chat Modal -->
+    <div class="modal fade" id="new-chat-modal" tabindex="-1" role="dialog" aria-labelledby="new-chat-modal-label"
+        aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="new-chat-modal-label">Create New Chat</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <form id="new-chat-form">
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="new-chat-name">Chat Name</label>
+                            <input type="text" class="form-control" id="new-chat-name" placeholder="Enter chat name">
+                        </div>
+                        <div class="form-group">
+                            <label for="new-chat-data-source">Data Source</label>
+                            <textarea class="form-control" id="new-chat-data-source" rows="5"
+                                placeholder="Enter data source text"></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                        <button type="submit" class="btn btn-primary">Save</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <!-- Custom JS -->
     <script src="{% static 'app.js' %}"></script>
+
 </body>
+
 </html>
