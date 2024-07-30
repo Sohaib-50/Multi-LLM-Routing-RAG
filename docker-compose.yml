@@ -7,6 +7,5 @@ services:
       - ./frontend:/app/frontend
     ports:
       - "8000:8000"
-    environment:
-      - DEBUG=True  # Set to False in production
-      - DJANGO_SETTINGS_MODULE=backend.settings
+    env_file:
+      - .env

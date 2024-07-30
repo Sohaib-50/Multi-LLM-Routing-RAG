@@ -1,13 +1,24 @@
-# api/views.py
 
 from django.http import JsonResponse
+from django.db import transaction
+
 from app.models import Chat, Message
+from app.utils.train import create_index
+from app.utils.chat import create_index, get_ai_response
+from backend.app.enums import OptimizationMetric
 
 def example_view(request):
     return JsonResponse({"message": "Hello, World!"})
 
+
 def get_chat(request, chat_id):
+    '''
+    Retrieve a chat and its messages with detailed information
+    '''
+
     chat = Chat.objects.get(id=chat_id)
+
+    # get all messages in the chat and related information
     messages = [
         {
             "content": message.content,
@@ -18,10 +29,15 @@ def get_chat(request, chat_id):
         }
         for message in chat.messages.all()
     ]
+
     return JsonResponse({"chat": chat.name, "messages": messages})
 
 
 def get_chats(request):
+    '''
+    Retrieve all chats with basic info
+    '''
+
     chats = [
         {
             "id": chat.id,
@@ -35,18 +51,43 @@ def get_chats(request):
 
 
 def create_chat(request):
-    chat = Chat.objects.create()
-    return JsonResponse({"chat_id": chat.id})
+    '''
+
+    '''
+
+    # check if text is provided
+    if not (text := request.POST.get("text").strip()):
+        return JsonResponse({"error": "No text provided"}, status=400)
+    
+    # attempt to create chat and index
+    try:
+        with transaction.atomic():
+                chat = Chat.objects.create()
+                create_index(text, chat.id)
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+    
+    return get_chat(request, chat.id)
+    
 
 
 # route which gets chat id and user message, gets ai response does other necessary things and returns the response
-def get_ai_response(request, chat_id):
+def ai_response(request):
+    
+    chat_id = request.POST.get("chat_id")
+    try:
+        chat_id = int(chat_id)
+    except ValueError:
+        return JsonResponse({"error": "Invalid Chat ID"}, status=400)
+
     chat = Chat.objects.get(id=chat_id)
-    user_message = request.GET.get("message")
-    ai_response = "AI response"
-    chat.add_message(user_message, "user", "GPT_4")
-    chat.add_message(ai_response, "AI", "GPT_4")
-    return JsonResponse({"response": ai_response})
+
+    message = request.POST.get("message")
+    optimization_metric = OptimizationMetric[request.POST.get("optimization_metric")]  # TODO: dropdown
+
+    get_ai_response(message=message, chat_id=chat_id, optimization_metric=optimization_metric)
+
+    
 
 
 
