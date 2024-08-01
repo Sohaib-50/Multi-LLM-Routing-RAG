@@ -42,7 +42,7 @@ function message_component(message) {
 
     containerDiv.innerHTML = `
         <div class="author">${message.role}</div>
-        ${message.content}
+        <pre style="white-space: pre-wrap;" class="content">${marked.parse(message.content)}</pre>
     `;
 
 

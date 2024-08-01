@@ -8,6 +8,7 @@ from litellm import completion
 
 from app.enums import LLMName, LLMType, OptimizationMetric
 from app.utils.semantic_route import SemanticRoute
+from app.utils.llms import LLMs
 
 
 @dataclass
@@ -48,26 +49,33 @@ class LLMRouter:
             semantic_routes = []
 
         self.models = {
-            "strong": strong_model,
-            "weak": weak_model,
+            "strong": LLMs[strong_model],
+            "weak": LLMs[weak_model],
         }
 
         self.semantic_routes = {route.name: route for route in semantic_routes}
         self.semantic_router_layer = SemanticRouteLayer(encoder=OpenAIEncoder(), routes=semantic_routes)
 
-        self.routellm_controller = Controller(routers=["mf"], strong_model=self.models["strong"], weak_model=self.models["weak"])
+        self.routellm_controller = Controller(routers=["mf"], strong_model=self.models["strong"].name, weak_model=self.models["weak"].name)
 
 
     def _route_based_on_optimization_metric(self, query: str, optimization_metric: OptimizationMetric) -> dict:
+        
+        # determine model type based on optimization metric
         if optimization_metric == OptimizationMetric.PERFORMANCE:
             model_type = LLMType.STRONG
-        else:  # factor is either PRICE or LATENCY
+        elif optimization_metric == OptimizationMetric.COST:
             model_type = LLMType.WEAK
+        else:  # optimization_metric is Latency
+            strong_model_tps = self.models["strong"].tokens_per_second
+            weak_model_tps = self.models["weak"].tokens_per_second
+            model_type = LLMType.STRONG if (strong_model_tps >= weak_model_tps) else LLMType.WEAK
+
 
         return {
             "query": query,
             "predicted_semantic": None,
-            "model": self.models[model_type],
+            "model": self.models[model_type].name,
             "model_type": model_type,
             "optimization_metric": optimization_metric,
             "based_on": f"optimization_metric: {optimization_metric}",
@@ -93,7 +101,7 @@ class LLMRouter:
         return {
             "query": query,
             "predicted_semantic": semantic_route.name,
-            "model": self.models[model_type],
+            "model": self.models[model_type].name,
             "model_type": model_type,
             "optimization_metric": None,
             "based_on": f"Semantic: {semantic_route.name}",
@@ -114,7 +122,7 @@ class LLMRouter:
             "query": query,
             "predicted_semantic": None,
             "model": model,
-            "model_type": LLMType.STRONG if model == self.models["strong"] else LLMType.WEAK,
+            "model_type": LLMType.STRONG if model == self.models["strong"].name else LLMType.WEAK,
             "optimization_metric": None,
             "based_on": "difficulty",
         }
@@ -126,8 +134,8 @@ class LLMRouter:
     ) -> dict:
         # TODO: add routing decision to return (eg optimization metric, semantic route, or difficulty)
 
-        # First try to route based on optimization factor
-        if optimization_metric is not None:
+        # First try to route based on optimization factor (if provided, valid and not 'availability')
+        if optimization_metric is not None and optimization_metric in OptimizationMetric and optimization_metric != OptimizationMetric.AVAILABILITY:
             return self._route_based_on_optimization_metric(query, optimization_metric)
 
         # Secondly try to route based on query semantics
@@ -145,12 +153,35 @@ class LLMRouter:
         query = kwargs.get("messages")[-1]["content"]
         routing_decision = self.route_query(query, optimization_metric)
         
-        model = routing_decision["model"]
-        print(f"Routed Model: {model}")    
+        preferred_model = routing_decision["model"]
+        print(f"Routed Model: {preferred_model}")    
 
-        response = completion(model=model, **kwargs)
-        response["_hidden_params"]["routing_decision"] = routing_decision
-        return response
+        try:
+            response = completion(model=preferred_model, **kwargs)
+            response["_hidden_params"]["routing_decision"] = routing_decision
+            return response
+        
+        except Exception as error:
+
+            if optimization_metric != OptimizationMetric.AVAILABILITY:
+                raise error
+            
+            # fallback to the other model to improve availability
+            preferred_model_type = routing_decision["model_type"]
+            fallback_model_type = LLMType.WEAK if (preferred_model_type == LLMType.STRONG) else LLMType.STRONG
+            fallback_model = self.models[fallback_model_type].name
+            print(f"Error in completion with preferred model {preferred_model}, falling back to {fallback_model}...")
+            
+            # update routing decision
+            routing_decision.update({
+                "model": fallback_model,
+                "model_type": fallback_model_type,
+                "based_on": f"Optimization Metric: {optimization_metric} (preferred model failed)"
+            })
+
+            response = completion(model=fallback_model, **kwargs)
+            response["_hidden_params"]["routing_decision"] = routing_decision
+            return response
 
 
 if __name__ == '__main__':

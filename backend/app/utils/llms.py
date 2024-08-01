@@ -24,6 +24,6 @@ class LLM:
         return round(random.uniform(min_tps, max_tps), 2)
     
 
-llms = {model.value: LLM(model.value) for model in LLMName}
+LLMs = {model.value: LLM(model.value) for model in LLMName}
 
 

@@ -12,9 +12,10 @@ class LLMName(str, Enum):
 
 
 class OptimizationMetric(str, Enum):
-    PRICE = "price"
+    COST = "cost"
     LATENCY = "latency"
     PERFORMANCE = "performance"
+    AVAILABILITY = "availability"
 
 
 class Role(str, Enum):

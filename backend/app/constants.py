@@ -1,6 +1,7 @@
 from app.utils.semantic_route import SemanticRoute
 from app.enums import LLMType, LLMName
 
+
 SEMANTIC_ROUTES = [
     SemanticRoute(
         name="greeting",
