@@ -24,6 +24,8 @@ urlpatterns = [
     # API routes
     path('api/', include('app.urls')),
 
+    path('', TemplateView.as_view(template_name='index.html'), name='home'),
+
     # SPA serving route (all endpoints not matched)
-    re_path(r'^.*$', TemplateView.as_view(template_name='index.html'), name='home'),
+    # re_path(r'^.*$', TemplateView.as_view(template_name='index.html'), name='home'),
 ]

@@ -1,5 +1,5 @@
-from backend.app.utils.semantic_route import SemanticRoute
-from backend.app.enums import LLMType, LLMName
+from app.utils.semantic_route import SemanticRoute
+from app.enums import LLMType, LLMName
 
 SEMANTIC_ROUTES = [
     SemanticRoute(

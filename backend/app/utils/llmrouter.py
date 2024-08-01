@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import List, Optional
 
 from semantic_router.encoders import OpenAIEncoder
@@ -5,24 +6,50 @@ from semantic_router.layer import RouteLayer as SemanticRouteLayer
 from routellm.controller import Controller
 from litellm import completion
 
-from backend.app.enums import LLMName, LLMType, OptimizationMetric
-from backend.app.utils.semantic_route import SemanticRoute
+from app.enums import LLMName, LLMType, OptimizationMetric
+from app.utils.semantic_route import SemanticRoute
 
 
+@dataclass
+class RoutingDecision:
+    query: str
+    model: LLMName
+    model_type: LLMType
+    predicted_semantic: Optional[str] = None
+    optimization_metric: Optional[OptimizationMetric] = None
+
+    def to_dict(self):
+        return {
+            "query": self.query,
+            "predicted_semantic": self.predicted_semantic,
+            "model": self.model,
+            "model_type": self.model_type,
+            "optimization_metric": self.optimization_metric,
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(
+            query=data["query"],
+            predicted_semantic=data.get("predicted_semantic"),
+            model=data["model"],
+            model_type=data["model_type"],
+            optimization_metric=data.get("optimization_metric"),
+        )
 class LLMRouter:
 
     def __init__(
         self,
-        strong_model_name: LLMName,
-        weak_model_name: LLMName,
+        strong_model: LLMName,
+        weak_model: LLMName,
         semantic_routes: Optional[List[SemanticRoute]] = None,
     ):
         if semantic_routes is None:
             semantic_routes = []
 
         self.models = {
-            "strong": strong_model_name,
-            "weak": weak_model_name,
+            "strong": strong_model,
+            "weak": weak_model,
         }
 
         self.semantic_routes = {route.name: route for route in semantic_routes}
@@ -33,36 +60,43 @@ class LLMRouter:
 
     def _route_based_on_optimization_metric(self, query: str, optimization_metric: OptimizationMetric) -> dict:
         if optimization_metric == OptimizationMetric.PERFORMANCE:
-            model = self.models["strong"]
+            model_type = LLMType.STRONG
         else:  # factor is either PRICE or LATENCY
-            model = self.models["weak"]
+            model_type = LLMType.WEAK
 
         return {
             "query": query,
-            "semantic_route": None,
-            "model": model,
+            "predicted_semantic": None,
+            "model": self.models[model_type],
+            "model_type": model_type,
+            "optimization_metric": optimization_metric,
+            "based_on": f"optimization_metric: {optimization_metric}",
         }
     
     def _route_based_on_semantic(self, query: str) -> dict:
+        
         # try to identify query type through semantic-router
         semantic_route_choice = self.semantic_router_layer(query)
         if semantic_route_choice.name is None:
             return {
                 "query": query,
-                "semantic_route": None,
-                "model": self.models["weak"],
+                "predicted_semantic": None,
+                "model": None,
+                "model_type": None,
+                "optimization_metric": None,
+                "based_on": None,
             }
         
         semantic_route = self.semantic_routes.get(semantic_route_choice.name)
-        if semantic_route.llm_type == LLMType.STRONG:
-            model = self.models["strong"]
-        else:
-            model = self.models["weak"]
+        model_type = semantic_route.llm_type
 
         return {
             "query": query,
-            "semantic_route": semantic_route,
-            "model": model,
+            "predicted_semantic": semantic_route.name,
+            "model": self.models[model_type],
+            "model_type": model_type,
+            "optimization_metric": None,
+            "based_on": f"Semantic: {semantic_route.name}",
         }
     
     def _route_query_based_on_difficulty(self, query: str) -> dict:
@@ -75,14 +109,15 @@ class LLMRouter:
             # calibrated threshold to route approximately 50% of the queries to the strong model, for more details see https://github.com/lm-sys/RouteLLM?tab=readme-ov-file#threshold-calibration
             threshold=0.11593,  
         )
-        model = LLMName(model)
 
         return {
             "query": query,
-            "semantic_route": None,
+            "predicted_semantic": None,
             "model": model,
+            "model_type": LLMType.STRONG if model == self.models["strong"] else LLMType.WEAK,
+            "optimization_metric": None,
+            "based_on": "difficulty",
         }
-
 
     def route_query(
         self,
@@ -98,7 +133,7 @@ class LLMRouter:
         # Secondly try to route based on query semantics
         if self.semantic_routes and self.semantic_router_layer:
             routing_decision = self._route_based_on_semantic(query)
-            if routing_decision["semantic_route"] is not None:
+            if routing_decision["predicted_semantic"] is not None:
                 return routing_decision
             
         # Lastly, if unable to identify query type, find out whether to use strong or weak model using RouteLLM
@@ -109,19 +144,21 @@ class LLMRouter:
 
         query = kwargs.get("messages")[-1]["content"]
         routing_decision = self.route_query(query, optimization_metric)
+        
         model = routing_decision["model"]
-        print(f"Model: {model}")    
+        print(f"Routed Model: {model}")    
 
-        return completion(model=model, **kwargs)
-
+        response = completion(model=model, **kwargs)
+        response["_hidden_params"]["routing_decision"] = routing_decision
+        return response
 
 
 if __name__ == '__main__':
-    from backend.app.constants import SEMANTIC_ROUTES
+    from app.constants import SEMANTIC_ROUTES
     from dotenv import load_dotenv
 
     load_dotenv()
-    llm_router = LLMRouter(strong_model_name=LLMName.GPT_4_O, weak_model_name=LLMName.GPT_3_5_TURBO, semantic_routes=SEMANTIC_ROUTES)
+    llm_router = LLMRouter(strong_model=LLMName.GPT_4_O, weak_model=LLMName.GPT_3_5_TURBO, semantic_routes=SEMANTIC_ROUTES)
     response = llm_router.completion(messages=[{"role": "user", "content": "Tumhe coding aati hai? Ya nahi? assume that i have classes for 2 different models a weak and small. They are LLMs. And they expose .chat method. I wanna be able to route quries depending on their difficulty. I am confused about the routing logic. Can you help me write full code for it?"}])
     print(response)
     # print(response._hidden_params)
