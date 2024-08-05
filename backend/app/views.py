@@ -154,9 +154,10 @@ def ai_response(request, chat_id):
     #         "query": query,
     #         "response": f"This is a mock response from the AI model for chat {chat_id} with query: {query}"
     #     })
-    if optimization_metric := request.POST.get("optimization_metric"):
-        # enumerte
-        optimization_metric = OptimizationMetric(optimization_metric)
+
+    # check if optimization metric is provided and valid
+    if (optimization_metric := request.POST.get("optimization_metric")) in OptimizationMetric:
+        optimization_metric = OptimizationMetric(optimization_metric)  # enumerate
         
     ai_response_data = get_ai_response(query=query, chat_id=chat_id, optimization_metric=optimization_metric)
 

@@ -223,6 +223,9 @@ function get_ai_response(event) {
     const chat_id = form.querySelector('input[name="chat-id"]').value;
     form_data.append('chat_id', chat_id);
     form_data.append('query', form.querySelector('textarea[name="new-message"]').value);
+    form_data.append('optimization_metric', form.querySelector('select[name="optimization-metric"]').value);
+
+    console.log("Optimization metric: ", form.querySelector('select[name="optimization-metric"]').value);
 
     const url = `/api/chat/${chat_id}/get_ai_response/`;
     console.log('url:', url, 'chat_id:', chat_id);

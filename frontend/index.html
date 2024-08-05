@@ -42,12 +42,11 @@
                     <textarea name="new-message" id="new-message" rows="3"
                         placeholder="Type your message..."></textarea>
 
-                    <!-- drop down input for optimization metric -->
                     <div class="form-group mt-2">
                         <!-- <label for="optimization-metric">Optimization Metric</label> -->
                         <select class="form-control" id="optimization-metric" name="optimization-metric">
-                            <option disabled selected>Optimization Metric (Optional)</option>
-                            <option value="none">None</option>
+                            <option disabled selected value="">Optimization Metric (Optional)</option>
+                            <option value="">None</option>
                             <option value="cost">Cost</option>
                             <option value="latency">Latency</option>
                             <option value="performance">Performance</option>

@@ -54,13 +54,11 @@ body {
 
 #new-message {
     width: 100%;
-    /* width: calc(100% - 90px); */
     resize: none;
     border: 1px solid #ced4da;
     border-radius: 0.25rem;
 }
 
-/* dropdown */
 #optimization-metric {
     width: calc(80% - 10px);
     margin-right: 10px;

@@ -135,7 +135,7 @@ class LLMRouter:
         # TODO: add routing decision to return (eg optimization metric, semantic route, or difficulty)
 
         # First try to route based on optimization factor (if provided, valid and not 'availability')
-        if optimization_metric is not None and optimization_metric in OptimizationMetric and optimization_metric != OptimizationMetric.AVAILABILITY:
+        if (optimization_metric is not None) and (optimization_metric in OptimizationMetric) and (optimization_metric != OptimizationMetric.AVAILABILITY):
             return self._route_based_on_optimization_metric(query, optimization_metric)
 
         # Secondly try to route based on query semantics
