@@ -1,19 +1,48 @@
+import json
+import logging
+import os
 
 from django.http import JsonResponse
 from django.db import transaction
 
 from app.models import Chat, Message
-from app.utils.chat import create_index, get_ai_response
-from app.enums import OptimizationMetric
+from app.utils.chat import get_models, update_models, create_index, get_ai_response
+from app.utils.llms import LLMs
+from app.enums import OptimizationMetric, LLMName
 
-import logging
-
-
+# Initial setup
 logger = logging.getLogger(__name__)
+update_models()  # set default models
+
 
 def example_view(request):
     return JsonResponse({"message": "Hello, World!"})
 
+
+def all_models(request):
+    return JsonResponse({"models": [model.value for model in LLMName]})
+
+
+def models_info(request):
+    if request.method == "PUT":
+
+        # get and validate model names
+        try:
+            request_data = json.loads(request.body)
+
+            strong_model_name = LLMName(request_data.get("strong_model_name"))
+            weak_model_name = LLMName(request_data.get("weak_model_name"))
+            
+            if strong_model_name == weak_model_name:
+                raise ValueError("Strong and weak models cannot be the same")
+            
+        except (KeyError, ValueError, json.JSONDecodeError) as e:
+            return JsonResponse({"error": f"Invalid model name(s) provided. Error: {e}"}, status=400) 
+
+        update_models(strong_model_name=strong_model_name, weak_model_name=weak_model_name)
+    
+    return JsonResponse(get_models())
+    
 
 def get_chat(request, chat_id):
     '''

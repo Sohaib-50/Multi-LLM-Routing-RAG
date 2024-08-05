@@ -1,13 +1,25 @@
+const ai_models = [];
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('Document loaded');
 
     const app = document.getElementById('app');
 
     document.getElementById('new-chat-form').addEventListener('submit', create_new_chat);
     document.getElementById('new-message-form').addEventListener('submit', get_ai_response);
     load_chats();
+    load_models_info();
+
+    // asynchrnous call to get all models
+    get_all_models()
+        .then(models => {
+            ai_models.push(...models);
+            populate_update_model_selects();
+            document.getElementById('update-models-form').addEventListener('submit', update_models);
+        });
+
+    console.log('Document loaded');
 
 });
+
 
 function get_csrf_token() {
     for (let cookie of document.cookie.split(';')) {
@@ -18,6 +30,7 @@ function get_csrf_token() {
     }
     return '';
 }
+
 
 function spinner_component() {
     const spinner = document.createElement('span');
@@ -51,7 +64,7 @@ function message_component(message) {
 
 
 function show_message_metadata(message_metadata_json) {
-    
+
     const metadata_modal = document.getElementById('message-metadata-modal');
     const metadata_modal_body = metadata_modal.querySelector('.modal-body');
     metadata_modal_body.innerHTML = `
@@ -70,7 +83,7 @@ function load_chats() {
     fetch(url)
         .then(response => response.json())
         .then(data => {
-            console.log(`Fetched chats:\n${JSON.stringify(data)}`);
+            // console.log(`Fetched chats:\n${JSON.stringify(data)}`);
             chats_list_div.innerHTML = '';
 
             data.chats.forEach(chat => {
@@ -78,7 +91,7 @@ function load_chats() {
                 chat_item.classList.add('chat-item');
                 chat_item.dataset.id = chat.id;
                 chat_item.innerHTML = `
-                    <div class="chat-name">${chat.name}</div>
+                    <b> ${chat.name} </b>
                     <div class="chat-date">${chat.started_at}</div>
                 `;
                 // add event listener to load chat messages (call load_chat)
@@ -93,6 +106,109 @@ function load_chats() {
         });
 }
 
+function load_models_info(models_info = null) {
+    if (models_info) {
+        document.querySelector('#strong-model-name').innerHTML = models_info.strong_model_name;
+        document.querySelector('#weak-model-name').innerHTML = models_info.weak_model_name;
+        return;
+    }
+
+    const url = '/api/models_info';
+
+    fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            console.log('Fetched models info:', data);
+
+            document.querySelector('#strong-model-name').innerHTML = data.strong_model_name;
+            document.querySelector('#weak-model-name').innerHTML = data.weak_model_name;
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+}
+
+
+function get_all_models() {
+    const url = '/api/all_models';
+
+    return fetch(url)
+        .then(response => response.json())
+        .then(data => {
+            console.log('Fetched all models:', data);
+            return data.models || [];
+        })
+        .catch(error => {
+            console.error('Error in fetching all models:', error);
+            return [];
+        });
+}
+
+function populate_update_model_selects() {
+    const strong_model_select = document.getElementById('new-strong-model-name');
+    const weak_model_select = document.getElementById('new-weak-model-name');
+
+    // add option for each model
+    ai_models.forEach(model => {
+        const option = document.createElement('option');
+        option.value = model;
+        option.textContent = model;
+        strong_model_select.appendChild(option);
+        weak_model_select.appendChild(option.cloneNode(true));
+    });
+}
+
+function update_models(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const new_strong_model_name = form.querySelector('select[name="new-strong-model-name"]').value;
+    const new_weak_model_name = form.querySelector('select[name="new-weak-model-name"]').value;
+
+    if (new_strong_model_name === new_weak_model_name) {
+        alert('Strong and weak models must be different.');
+        return;
+    }
+
+    const url = '/api/models_info/';
+    
+    fetch(url, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': get_csrf_token(),
+        },
+        body: JSON.stringify({
+            strong_model_name: new_strong_model_name,
+            weak_model_name: new_weak_model_name,
+        }),
+    })
+        .then(response => {
+            console.log('Response status:', response.status);
+
+            if (!response.ok) {
+                return response.json().then(errorData => {
+                    throw new Error(`Error ${response.status}: ${errorData.message || response.statusText}`);
+                });
+            }
+
+            return response.json();
+        })
+        .then(data => {
+            console.log('Models updated:', data);
+
+            load_models_info(data);
+
+            // close modal
+            $('#update-models-modal').modal('hide');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred, please try again.');
+        });
+}
+
+
 function load_chat(chat_id) {
     console.log(`Loading chat with id: ${chat_id}`);
     const url = `/api/chat/${chat_id}`;
@@ -104,7 +220,6 @@ function load_chat(chat_id) {
 
     // clear chat messages
     chat_messages.innerHTML = '';
-
 
     fetch(url, {
         method: 'GET',

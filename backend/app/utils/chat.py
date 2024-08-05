@@ -1,5 +1,5 @@
 import os
-from typing import Optional
+from typing import Dict, Optional
 from django.conf import settings
 
 from langchain_community.vectorstores import FAISS
@@ -9,17 +9,34 @@ from langchain_core.documents import Document
 from litellm import Router as litellmRouter
 
 
-from app.constants import SEMANTIC_ROUTES, STRONG_MODEL_NAME, WEAK_MODEL_NAME
+from app.constants import SEMANTIC_ROUTES, DEFAULT_STRONG_MODEL_NAME, DEFAULT_WEAK_MODEL_NAME
 from app.enums import OptimizationMetric, LLMName, Role
 from app.utils.llmrouter import LLMRouter
 from app.models import Chat
 
 
 llm_router = LLMRouter(
-    strong_model=STRONG_MODEL_NAME,
-    weak_model=WEAK_MODEL_NAME,
+    strong_model_name=DEFAULT_STRONG_MODEL_NAME,
+    weak_model_name=DEFAULT_WEAK_MODEL_NAME,
     semantic_routes=SEMANTIC_ROUTES,
 )
+
+
+# Note: This is a function, python magic 😁
+get_models: Dict[str, LLMName] = lambda: {
+    "strong_model_name": os.environ['STRONG_MODEL_NAME'],
+    "weak_model_name": os.environ['WEAK_MODEL_NAME'],
+}
+
+
+def update_models(strong_model_name: LLMName = DEFAULT_STRONG_MODEL_NAME, weak_model_name: LLMName = DEFAULT_WEAK_MODEL_NAME):
+    if strong_model_name not in LLMName or weak_model_name not in LLMName:
+        raise ValueError("Invalid model name(s) provided")
+    
+    os.environ['STRONG_MODEL_NAME'] = strong_model_name
+    os.environ['WEAK_MODEL_NAME'] = weak_model_name
+    llm_router.update_models(strong_model_name=strong_model_name, weak_model_name=weak_model_name)
+
 
 def create_index(knowledgebase: str, chat_id: int):
 

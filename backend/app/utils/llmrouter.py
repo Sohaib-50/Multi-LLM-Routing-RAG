@@ -41,16 +41,16 @@ class LLMRouter:
 
     def __init__(
         self,
-        strong_model: LLMName,
-        weak_model: LLMName,
+        strong_model_name: LLMName,
+        weak_model_name: LLMName,
         semantic_routes: Optional[List[SemanticRoute]] = None,
     ):
         if semantic_routes is None:
             semantic_routes = []
 
         self.models = {
-            "strong": LLMs[strong_model],
-            "weak": LLMs[weak_model],
+            "strong": LLMs[strong_model_name],
+            "weak": LLMs[weak_model_name],
         }
 
         self.semantic_routes = {route.name: route for route in semantic_routes}
@@ -59,18 +59,31 @@ class LLMRouter:
         self.routellm_controller = Controller(routers=["mf"], strong_model=self.models["strong"].name, weak_model=self.models["weak"].name)
 
 
-    def _route_based_on_optimization_metric(self, query: str, optimization_metric: OptimizationMetric) -> dict:
+    def update_models(self, strong_model_name: LLMName, weak_model_name: LLMName):
+        self.models.update({
+            "strong": LLMs[strong_model_name],
+            "weak": LLMs[weak_model_name],
+        })
+        self.routellm_controller = Controller(routers=["mf"], strong_model=self.models["strong"].name, weak_model=self.models["weak"].name)
+
         
+    def _route_based_on_optimization_metric(self, query: str, optimization_metric: OptimizationMetric) -> dict:
+        based_on = f"Optimization_metric: {optimization_metric.value}"
+
         # determine model type based on optimization metric
         if optimization_metric == OptimizationMetric.PERFORMANCE:
             model_type = LLMType.STRONG
+            based_on = based_on + " , routing to strong model"
         elif optimization_metric == OptimizationMetric.COST:
             model_type = LLMType.WEAK
+            based_on = based_on + " , routing to weak model"
         else:  # optimization_metric is Latency
+
+            # decide based on tokens per second
             strong_model_tps = self.models["strong"].tokens_per_second
             weak_model_tps = self.models["weak"].tokens_per_second
             model_type = LLMType.STRONG if (strong_model_tps >= weak_model_tps) else LLMType.WEAK
-
+            based_on = based_on + f" , routing to {model_type.value} model due to higher TPS ({strong_model_tps} vs {weak_model_tps})"
 
         return {
             "query": query,
@@ -78,7 +91,7 @@ class LLMRouter:
             "model": self.models[model_type].name,
             "model_type": model_type,
             "optimization_metric": optimization_metric,
-            "based_on": f"optimization_metric: {optimization_metric}",
+            "based_on": based_on,
         }
     
     def _route_based_on_semantic(self, query: str) -> dict:
@@ -153,23 +166,35 @@ class LLMRouter:
         query = kwargs.get("messages")[-1]["content"]
         routing_decision = self.route_query(query, optimization_metric)
         
-        preferred_model = routing_decision["model"]
+        preferred_model = self.models[routing_decision["model_type"]]
+        kwargs.update({
+            "model": preferred_model.model,
+            "api_base": preferred_model.api_base,
+            "api_key": preferred_model.api_key,
+        })
         print(f"Routed Model: {preferred_model}")    
 
         try:
-            response = completion(model=preferred_model, **kwargs)
+            response = completion(**kwargs)
             response["_hidden_params"]["routing_decision"] = routing_decision
             return response
         
+        # Fall back to the other model if availibility is the optimization metric
         except Exception as error:
-
+            
+            # Do not fallback if optimization metric is not availability
             if optimization_metric != OptimizationMetric.AVAILABILITY:
                 raise error
             
             # fallback to the other model to improve availability
             preferred_model_type = routing_decision["model_type"]
-            fallback_model_type = LLMType.WEAK if (preferred_model_type == LLMType.STRONG) else LLMType.STRONG
-            fallback_model = self.models[fallback_model_type].name
+            fallback_model_type = LLMType.WEAK if preferred_model_type == LLMType.STRONG else LLMType.STRONG
+            fallback_model = self.models[fallback_model_type]
+            kwargs.update({
+                "model": fallback_model.model,
+                "api_base": fallback_model.api_base,
+                "api_key": fallback_model.api_key,
+            })
             print(f"Error in completion with preferred model {preferred_model}, falling back to {fallback_model}...")
             
             # update routing decision
@@ -179,7 +204,7 @@ class LLMRouter:
                 "based_on": f"Optimization Metric: {optimization_metric} (preferred model failed)"
             })
 
-            response = completion(model=fallback_model, **kwargs)
+            response = completion(**kwargs)
             response["_hidden_params"]["routing_decision"] = routing_decision
             return response
 
@@ -189,7 +214,7 @@ if __name__ == '__main__':
     from dotenv import load_dotenv
 
     load_dotenv()
-    llm_router = LLMRouter(strong_model=LLMName.GPT_4_O, weak_model=LLMName.GPT_3_5_TURBO, semantic_routes=SEMANTIC_ROUTES)
+    llm_router = LLMRouter(strong_model_name=LLMName.GPT_4_O, weak_model_name=LLMName.GPT_3_5_TURBO, semantic_routes=SEMANTIC_ROUTES)
     response = llm_router.completion(messages=[{"role": "user", "content": "Tumhe coding aati hai? Ya nahi? assume that i have classes for 2 different models a weak and small. They are LLMs. And they expose .chat method. I wanna be able to route quries depending on their difficulty. I am confused about the routing logic. Can you help me write full code for it?"}])
     print(response)
     # print(response._hidden_params)

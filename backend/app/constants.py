@@ -1,4 +1,5 @@
 from app.utils.semantic_route import SemanticRoute
+from app.utils.llms import LLMs
 from app.enums import LLMType, LLMName
 
 
@@ -30,8 +31,8 @@ SEMANTIC_ROUTES = [
     ),
 ]
 
-STRONG_MODEL_NAME = LLMName.GPT_4_O
-WEAK_MODEL_NAME = LLMName.GPT_3_5_TURBO
+DEFAULT_STRONG_MODEL_NAME = LLMName.GPT_4_O
+DEFAULT_WEAK_MODEL_NAME = LLMName.LLAMA3_8B
 
 
 

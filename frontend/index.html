@@ -43,9 +43,8 @@
                         placeholder="Type your message..."></textarea>
 
                     <div class="form-group mt-2">
-                        <!-- <label for="optimization-metric">Optimization Metric</label> -->
                         <select class="form-control" id="optimization-metric" name="optimization-metric">
-                            <option disabled selected value="">Optimization Metric (Optional)</option>
+                            <option selected value="">Optimization Metric (Optional)</option>
                             <option value="">None</option>
                             <option value="cost">Cost</option>
                             <option value="latency">Latency</option>
@@ -61,15 +60,34 @@
                 </form>
             </div>
 
-            <aside id="chats">
-                <h4>Chats</h4>
+            <aside>
+                <div id="models">
+                    <h4>Models</h4>
+                    <!-- <hr> -->
+                    <div id="strong-model">
+                        <b> Strong Model </b>
+                        <div id="strong-model-name"></div>
+                    </div>
+                    <div id="weak-model">
+                        <b> Weak Model </b>
+                        <div id="weak-model-name"></div>
+                    </div>
+                    <!-- modal to open update models -->
+                    <button id="update-models-button" class="btn btn-secondary" data-toggle="modal"
+                        data-target="#update-models-modal">
+                        Update Models
+                    </button>
+                </div>
                 <hr>
-                <button id="new-chat-button" class="btn btn-secondary" data-toggle="modal"
-                    data-target="#new-chat-modal">
-                    +New Chat
-                </button>
-                <div id="chats-list">
+                <div id="chats">
+                    <h4>Chats</h4>
+                    <!-- <hr> -->
+                    <button id="new-chat-button" class="btn btn-secondary" data-toggle="modal"
+                        data-target="#new-chat-modal">
+                        New Chat
+                    </button>
 
+                    <div id="chats-list"></div>
                 </div>
             </aside>
         </div>
@@ -99,6 +117,42 @@
                 </div>
             </div>
         </div>
+
+        <!-- Update Models Modal -->
+        <div class="modal fade" id="update-models-modal" tabindex="-1" role="dialog"
+            aria-labelledby="update-models-label" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="update-models-label">Update Models</h5>
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <form id="update-models-form">
+                        <div class="modal-body">
+                            <div class="form-group">
+                                <label for="new-strong-model-name">Strong Model Name</label>
+                                <select required class="form-control" id="new-strong-model-name" name="new-strong-model-name">
+                                    <option disabled selected value="">Select Strong Model</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label for="new-weak-model-name">Weak Model Name</label>
+                                <select required class="form-control" id="new-weak-model-name" name="new-weak-model-name">
+                                    <option disabled selected value="">Select Weak Model</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                            <button type="submit" class="btn btn-primary">Update</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
 
         <!-- New Chat Modal -->
         <div class="modal fade" id="new-chat-modal" tabindex="-1" role="dialog" aria-labelledby="new-chat-modal-label"
@@ -134,25 +188,6 @@
         </div>
 
         <!-- message metadata modal -->
-        <!-- <div class="modal fade" id="message-metadata-modal" tabindex="-1" role="dialog" aria-labelledby="message-metadata-modal-label"
-            aria-hidden="true">
-            <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="message-metadata-modal-label">Message Metadata</h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <div id="message-metadata"></div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-                    </div>
-                </div>
-            </div>
-        </div> -->
         <div class="modal fade" id="message-metadata-modal" tabindex="-1" role="dialog"
             aria-labelledby="message-metadata-label" aria-hidden="true">
             <div class="modal-dialog modal-lg" role="document">
