@@ -25,4 +25,4 @@ class Role(str, Enum):
 
 
 
-print([(role.value, role.name) for role in Role])
+# print([(role.value, role.name) for role in Role])
