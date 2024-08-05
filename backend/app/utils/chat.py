@@ -97,8 +97,8 @@ def get_ai_response(query: str, chat_id: int, optimization_metric: Optional[Opti
     # save user message
     user_message = chat.add_message(content=query, role=Role.USER.value)
 
-    # override optimization metric for testing
-    optimization_metric = OptimizationMetric.LATENCY
+    # # override optimization metric for testing
+    # optimization_metric = OptimizationMetric.LATENCY
     # get response
     response = llm_router.completion(messages=messages, optimization_metric=optimization_metric)
     

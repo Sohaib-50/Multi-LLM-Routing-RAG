@@ -42,15 +42,16 @@ function message_component(message) {
 
     containerDiv.innerHTML = `
         <div class="author">${message.role}</div>
-        <pre style="white-space: pre-wrap;">${message.content}</pre>
+        <pre style="white-space: pre-wrap;" class="content">${marked.parse(message.content)}</pre>
     `;
+
 
     return containerDiv;
 }
 
 
 function show_message_metadata(message_metadata_json) {
-
+    
     const metadata_modal = document.getElementById('message-metadata-modal');
     const metadata_modal_body = metadata_modal.querySelector('.modal-body');
     metadata_modal_body.innerHTML = `
