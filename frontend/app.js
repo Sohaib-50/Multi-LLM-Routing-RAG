@@ -25,9 +25,11 @@ function get_csrf_token() {
     for (let cookie of document.cookie.split(';')) {
         const [name, value] = cookie.trim().split('=');
         if (name === 'csrftoken') {
+            console.log('CSRF token:', value);
             return value;
         }
     }
+    console.error('CSRF token not found');
     return '';
 }
 
@@ -331,6 +333,8 @@ function create_new_chat(event) {
 
 
 function get_ai_response(event) {
+
+    console.log("CSRF IS ---------->", get_csrf_token());
     event.preventDefault();
 
     const form = event.target;

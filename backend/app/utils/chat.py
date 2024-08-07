@@ -101,7 +101,7 @@ def get_ai_response(query: str, chat_id: int, optimization_metric: Optional[Opti
     #     {context}
     #     ```
     # """
-    user_query_template = "```{query}```"
+    user_query_template = "{query}"
     
     # user_query = user_query_template.format(query=query, context=context)
     # messages.append({"role": "user", "content": user_query})
