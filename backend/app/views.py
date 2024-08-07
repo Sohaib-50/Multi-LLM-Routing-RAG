@@ -191,6 +191,3 @@ def ai_response(request, chat_id):
     ai_response_data = get_ai_response(query=query, chat_id=chat_id, optimization_metric=optimization_metric)
 
     return JsonResponse(ai_response_data)
-
-    
-    

@@ -15,12 +15,7 @@ from app.utils.llmrouter import LLMRouter
 from app.models import Chat
 
 
-llm_router = LLMRouter(
-    strong_model_name=DEFAULT_STRONG_MODEL_NAME,
-    weak_model_name=DEFAULT_WEAK_MODEL_NAME,
-    semantic_routes=SEMANTIC_ROUTES,
-)
-
+completion = LLMRouter.completion
 
 # Note: This is a function, python magic 😁
 get_models: Dict[str, LLMName] = lambda: {
@@ -35,7 +30,6 @@ def update_models(strong_model_name: LLMName = DEFAULT_STRONG_MODEL_NAME, weak_m
     
     os.environ['STRONG_MODEL_NAME'] = strong_model_name
     os.environ['WEAK_MODEL_NAME'] = weak_model_name
-    llm_router.update_models(strong_model_name=strong_model_name, weak_model_name=weak_model_name)
 
 
 def create_index(knowledgebase: str, chat_id: int):
@@ -117,7 +111,14 @@ def get_ai_response(query: str, chat_id: int, optimization_metric: Optional[Opti
     # # override optimization metric for testing
     # optimization_metric = OptimizationMetric.LATENCY
     # get response
-    response = llm_router.completion(messages=messages, optimization_metric=optimization_metric)
+    # response = llm_router.completion(messages=messages, optimization_metric=optimization_metric)
+    response = completion(
+        messages=messages,
+        optimization_metric=optimization_metric,
+        strong_model_name=os.environ['STRONG_MODEL_NAME'],
+        weak_model_name=os.environ['WEAK_MODEL_NAME'],
+        semantic_routes=SEMANTIC_ROUTES
+    )
     
     # save ai response
     ai_message = chat.add_message(content=response.choices[0].message.content, role=Role.ASSISTANT.value,
