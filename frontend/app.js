@@ -79,7 +79,7 @@ function show_message_metadata(message_metadata_json) {
 
 
 function load_chats() {
-    const url = '/api/chats';
+    const url = '/api/chats/';
     const chats_list_div = document.getElementById('chats-list');
 
     fetch(url)
@@ -115,7 +115,7 @@ function load_models_info(models_info = null) {
         return;
     }
 
-    const url = '/api/models_info';
+    const url = '/api/models_info/';
 
     fetch(url)
         .then(response => response.json())
@@ -132,7 +132,7 @@ function load_models_info(models_info = null) {
 
 
 function get_all_models() {
-    const url = '/api/all_models';
+    const url = '/api/all_models/';
 
     return fetch(url)
         .then(response => response.json())
