@@ -7,12 +7,14 @@ from langchain_text_splitters import CharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
 from langchain_core.documents import Document
 from litellm import Router as litellmRouter
+from openai import OpenAI 
 
 
 from app.constants import SEMANTIC_ROUTES, DEFAULT_STRONG_MODEL_NAME, DEFAULT_WEAK_MODEL_NAME
 from app.enums import OptimizationMetric, LLMName, Role
 from app.utils.llmrouter import LLMRouter
 from app.models import Chat
+from app.utils.llms import LLMs
 
 
 completion = LLMRouter.completion
@@ -66,10 +68,9 @@ def get_ai_response(query: str, chat_id: int, optimization_metric: Optional[Opti
 
     # get message history
     chat = Chat.objects.get(id=chat_id)
-    messages = chat.get_messages(k_recent=4)  # TODO: make k_recent configurable
-    messages = [{"role": message.role, "content": message.content} for message in messages]
+    messages = [{"role": message.role, "content": message.content} for message in chat.get_messages(k_recent=4)]
     
-    # add system message
+    # define prompt templates  
     system_message_template = """You are a helpful chatbot assistant that answers user queries from some data/knolwedgebase.\
         You will be given relevant context along with the user query; the context is the most relevant data found from the knowledgebase for the user query and it may be empty. \
         You will also receive the previous few messages in the chat history. Use the context, history, and your own intellegence to form an answer but only use the data provided, if the user's query is not clear or can't be answered with the given data/context, mention it or ask for clarification instead of making up an answer.\
@@ -80,52 +81,74 @@ def get_ai_response(query: str, chat_id: int, optimization_metric: Optional[Opti
         {context}
         ```
     """
-        
-    # messages = [{"role": Role.SYSTEM.value, "content": system_message_content}] + messages
-
-    # form and add new user query
-    # user_query_template = """Answer the given user query using the context provided, both delimited by triple backticks.
-    #     User Query:
-    #     ```
-    #     {query}
-    #     ```
-
-    #     Context:
-    #     ```
-    #     {context}
-    #     ```
-    # """
     user_query_template = "{query}"
     
-    # user_query = user_query_template.format(query=query, context=context)
-    # messages.append({"role": "user", "content": user_query})
-
-    # add system message and user messages to the message history
-    messages = [{"role": Role.SYSTEM.value, "content": system_message_template.format(context=context)}] + messages + [{"role": Role.USER.value, "content": user_query_template.format(query=query)}]
+    # add system and user messages to the message history
+    messages = [{"role": Role.SYSTEM.value, "content": system_message_template.format(context=context)}] \
+        + messages \
+        + [{"role": Role.USER.value, "content": user_query_template.format(query=query)}]
 
     print(f"- Final message history:\n {"\n".join([str(message) for message in messages])}\n", flush=True)
-
-    # save user message
-    user_message = chat.add_message(content=query, role=Role.USER.value)
 
     # # override optimization metric for testing
     # optimization_metric = OptimizationMetric.LATENCY
     # get response
     # response = llm_router.completion(messages=messages, optimization_metric=optimization_metric)
-    response = completion(
+    # response = completion(
+    #     messages=messages,
+    #     optimization_metric=optimization_metric,
+    #     strong_model_name=os.environ['STRONG_MODEL_NAME'],
+    #     weak_model_name=os.environ['WEAK_MODEL_NAME'],
+    #     semantic_routes=SEMANTIC_ROUTES
+    # )
+
+
+    # make an open ai style completion request but with our own base url'
+    client = OpenAI(base_url="http://localhost:8000/api/")
+
+    # setup custom parameters
+    models_info = get_models()
+    strong_model = LLMs[models_info["strong_model_name"]]
+    weak_model = LLMs[models_info["weak_model_name"]]
+    semantics = [
+        {
+            "name": semantic.name,
+            "model_type": semantic.llm_type,
+            "utterances": semantic.utterances,
+        }
+        for semantic in SEMANTIC_ROUTES
+    ]
+
+    response = client.chat.completions.create(
+        model="doesntmatter",
         messages=messages,
-        optimization_metric=optimization_metric,
-        strong_model_name=os.environ['STRONG_MODEL_NAME'],
-        weak_model_name=os.environ['WEAK_MODEL_NAME'],
-        semantic_routes=SEMANTIC_ROUTES
+        extra_body={
+            "models": {
+                "strong": {
+                    "model": strong_model.model,
+                    "api_key": strong_model.api_key,
+                    "api_base": strong_model.api_base,
+                },
+                "weak": {
+                    "model": weak_model.model,
+                    "api_key": weak_model.api_key,
+                    "api_base": weak_model.api_base,
+                } 
+            },
+            "optimization_metric": optimization_metric,
+            "semantics": semantics,
+        }
     )
     
+    # save user message
+    user_message = chat.add_message(content=query, role=Role.USER.value)
+
     # save ai response
     ai_message = chat.add_message(content=response.choices[0].message.content, role=Role.ASSISTANT.value,
-                     model_used=response.model, metadata={"response": response.json() | response["_hidden_params"]})
+                     model_used=response.model, metadata=response.metadata)
 
     # update user message metadata
-    user_message.metadata = {"routing_decision": response["_hidden_params"]["routing_decision"]}
+    user_message.metadata = {"routing_decision": response.routing_decision}
     user_message.save()
 
     print(f"AI response obtained: {response.choices[0].message.content}\n", flush=True)

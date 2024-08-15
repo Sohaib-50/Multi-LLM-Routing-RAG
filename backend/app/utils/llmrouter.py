@@ -10,8 +10,34 @@ from app.enums import LLMName, LLMType, OptimizationMetric
 from app.utils.semantic_route import SemanticRoute
 from app.utils.llms import LLMs, LLM
 
+@dataclass
+class ModelDetails:
+    model: str  # The model name in format '<provider>/<model_name>' where '<provider>/' is optional and defaults to 'openai/'
+    api_key: str = None  # The API key for the model, defaults to None here which litellm completion hanndles as environment variable OPENAI_API_KEY
+    api_base: str = None  # The base URL for the model's API, defaults to None here which litellm completion handles as Open AI's API base URL
+
+@dataclass
+class ModelPair:
+    strong: ModelDetails
+    weak: ModelDetails
+
+@dataclass
+class Semantic:
+    name: str
+    model_type: LLMType
+    utterances: List[str]
+
+# @dataclass
+# class SemanticRoute
 
 class LLMRouter:
+
+    @staticmethod
+    def _parse_model(model: str) -> LLM:
+        model_split = model.split("/")
+        name = model_split[-1]
+        provider = model_split[0] if (len(model_split) == 2) else None
+        return name, provider
 
 
     @staticmethod
@@ -130,34 +156,45 @@ class LLMRouter:
         return cls._route_query_based_on_difficulty(query, difficutly_router, models)
 
     @classmethod
-    def completion(cls, *,
+    def completion(
+        cls,
+        *,
+        models: ModelPair,
         optimization_metric: Optional[OptimizationMetric] = None,
-        strong_model_name: LLMName,
-        weak_model_name: LLMName,
-        semantic_routes: Optional[List[SemanticRoute]] = None,
+        semantics: List[Semantic] = None,
         **kwargs
     ):
 
-        # Setup
-        if semantic_routes is None:
-            semantic_routes = []
+        # Parse inputs into variables of form that match previous implementation and make them easier to work with for us
+        strong_model_name, strong_model_provider = cls._parse_model(models["strong"]["model"])
+        weak_model_name, weak_model_provider = cls._parse_model(models["weak"]["model"])
+        models["strong"].update({
+            "name": strong_model_name,
+            "provider": strong_model_provider,
+        })
+        models["weak"].update({
+            "name": weak_model_name,
+            "provider": weak_model_provider,
+        })
 
-        models: Dict[str, LLM] = {
-            "strong": LLMs[strong_model_name],
-            "weak": LLMs[weak_model_name],
+        semantic_routes = {
+            semantic['name']: SemanticRoute(name=semantic['name'], llm_type=semantic['model_type'], utterances=semantic['utterances'])
+            for semantic in semantics
         }
 
-        semantic_router = SemanticRouteLayer(
-            encoder=OpenAIEncoder(), routes=semantic_routes)
-        difficutly_router = RouteLLMController(
-            routers=["mf"], strong_model=models["strong"].name, weak_model=models["weak"].name)
+        strong_model_info = models["strong"]
+        weak_model_info = models["weak"]
+        models: Dict[str, LLM] = {
+            "strong": LLM(name=strong_model_info.get("name"), api_base=strong_model_info.get("api_base"), api_key=strong_model_info.get("api_key"), provider=strong_model_info.get("provider")),
+            "weak": LLM(name=weak_model_info.get("name"), api_base=weak_model_info.get("api_base"), api_key=weak_model_info.get("api_key"), provider=weak_model_info.get("provider")),
+        }
 
-        semantic_routes = {route.name: route for route in semantic_routes}
+        semantic_router = SemanticRouteLayer(encoder=OpenAIEncoder(), routes=semantic_routes.values())
+        difficutly_router = RouteLLMController(routers=["mf"], strong_model=models["strong"].name, weak_model=models["weak"].name)
 
         # Route query
-        query = kwargs.get("messages")[-1]["content"]
         routing_decision = cls.route_query(
-            query=query,
+            query=kwargs.get("messages")[-1]["content"],
             semantic_routes=semantic_routes,
             semantic_router=semantic_router,
             difficutly_router=difficutly_router,
@@ -165,7 +202,6 @@ class LLMRouter:
             optimization_metric=optimization_metric,
         )
 
-        # preferred_model = models[routing_decision["model_type"]]
         preferred_model: LLM = models[routing_decision["model_type"]]
         kwargs.update({
             "model": preferred_model.model,
@@ -174,12 +210,13 @@ class LLMRouter:
         })
         print(f"Routed Model: {preferred_model}")
 
+        # get model response using our routing decision and rest of the parameters
         try:
             response = completion(**kwargs)
             response["_hidden_params"]["routing_decision"] = routing_decision
             return response
 
-        # Fall back to the other model if availibility is the optimization metric
+        # fall back to the other model if availibility is the optimization metric
         except Exception as error:
 
             # Do not fallback if optimization metric is not availability

@@ -61,18 +61,3 @@ class Message(models.Model):
             "metadata": self.metadata,
         }
     
-# class LLM(models.Model):
-#     name = models.CharField(max_length=255, choices=[(model.value, model.name) for model in LLMName], primary_key=True)
-
-#     def __str__(self):
-#         return f"{self.name} - {self.model_name}"
-    
-#     @property
-#     def tokens_per_second(self):
-#         '''
-#         Simulates the number of tokens per second the LLM can process.
-#         '''
-#         min_tps = 20
-#         max_tps = 500
-#         return round(random.uniform(min_tps, max_tps), 2)
-

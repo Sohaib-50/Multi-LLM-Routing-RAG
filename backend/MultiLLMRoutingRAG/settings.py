@@ -138,3 +138,5 @@ DJANGO_SETTINGS_MODULE = 'MultiLLMRoutingRAG.settings'
 
 print(f"DJANGO_SETTINGS_MODULE: {DJANGO_SETTINGS_MODULE}")
 print(f"Template directory: {BASE_DIR.parent / 'frontend'}")
+
+APPEND_SLASH = False
