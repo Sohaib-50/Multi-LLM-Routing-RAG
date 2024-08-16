@@ -53,6 +53,7 @@ def chat(query, optimization_metric=None):
     print(f"-> response.choices[0].message.content:\n{response.choices[0].message.content}")
 
 
+
 if __name__ == "__main__":
     # query = """Tell the authenticity of the reply to following question
     # Question:

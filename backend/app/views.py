@@ -119,7 +119,6 @@ def ai_response(request, chat_id):
 
     if request.method != "POST":
         return JsonResponse({"error": "Only POST requests are allowed"}, status=405)
-
         
     try:
         chat_id = int(chat_id)
@@ -163,44 +162,9 @@ def chat_completions(request):
     # TODO: make this route exactly as per OpenAI specs
 
     if request.method != "POST":
-        # TODO: make this response exactly as per specs
         return JsonResponse({"error": "Only POST requests are allowed"}, status=405)
 
-
     kwargs = json.loads(request.body)
-
-    # extra_body_form = ChatCompletionExtraBodyForm(kwargs)
-    # if not extra_body_form.is_valid():
-    #     return JsonResponse({"error": extra_body_form.errors}, status=400)
-    
-    # print(f"Extra body form: {extra_body_form.cleaned_data}", flush=True)
-    # print(extra_body_form.cleaned_data.keys(), flush=True)
-
-    # # TODO: technical debt, fix this
-    # strong_model = kwargs["models"]["strong"]
-    # strong_model_model = strong_model["model"]
-    # strong_model_model_split = strong_model_model.split("/")
-    # strong_model_name = strong_model_model_split[-1]
-    # if len(strong_model_model_split) == 2:
-    #     strong_model_provider = strong_model_model_split[0]
-    # else:
-    #     strong_model_provider = None
-    # kwargs["models"]["strong"].update({
-    #     "name": strong_model_name,
-    #     "provider": strong_model_provider,
-    # })
-    # weak_model = kwargs["models"]["weak"]
-    # weak_model_model = weak_model["model"]
-    # weak_model_model_split = weak_model_model.split("/")
-    # weak_model_name = weak_model_model_split[-1]
-    # if len(weak_model_model_split) == 2:
-    #     weak_model_provider = weak_model_model_split[0]
-    # else:
-    #     weak_model_provider = None
-    # kwargs["models"]["weak"].update({
-    #     "name": weak_model_name,
-    #     "provider": weak_model_provider,
-    # })
 
     if kwargs.get("optimization_metric"):
         kwargs["optimization_metric"] = OptimizationMetric(kwargs["optimization_metric"])

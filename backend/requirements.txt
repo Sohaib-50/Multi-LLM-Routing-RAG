@@ -6,3 +6,4 @@ routellm[serve,eval]
 openai
 Django
 faiss-cpu
+ragas

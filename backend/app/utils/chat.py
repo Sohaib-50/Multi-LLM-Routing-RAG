@@ -102,7 +102,6 @@ def get_ai_response(query: str, chat_id: int, optimization_metric: Optional[Opti
     #     semantic_routes=SEMANTIC_ROUTES
     # )
 
-
     # make an open ai style completion request but with our own base url'
     client = OpenAI(base_url="http://localhost:8000/api/")
 
