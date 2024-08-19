@@ -88,8 +88,6 @@ def get_ai_response(query: str, chat_id: int, optimization_metric: Optional[Opti
         + messages \
         + [{"role": Role.USER.value, "content": user_query_template.format(query=query)}]
 
-    print(f"- Final message history:\n {"\n".join([str(message) for message in messages])}\n", flush=True)
-
     # # override optimization metric for testing
     # optimization_metric = OptimizationMetric.LATENCY
     # get response
