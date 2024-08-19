@@ -7,3 +7,4 @@ openai
 Django
 faiss-cpu
 ragas
+langid
