@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Dict, List, Optional
+import langid
 
 from semantic_router.encoders import OpenAIEncoder
 from semantic_router.layer import RouteLayer as SemanticRouteLayer
@@ -9,6 +10,7 @@ from litellm import completion
 from app.enums import LLMName, LLMType, OptimizationMetric
 from app.utils.semantic_route import SemanticRoute
 from app.utils.llms import LLMs, LLM
+
 
 @dataclass
 class ModelDetails:
@@ -70,6 +72,38 @@ class LLMRouter:
             "optimization_metric": optimization_metric,
             "based_on": based_on,
         }
+    
+    @staticmethod
+    def _route_based_on_non_english(
+        query: str,
+        models: Dict[str, LLM]
+    ) -> dict:
+        '''
+        Routes to strong model if query is non-english
+        '''
+        # TODO: add language in return dict everywhere
+
+        predicted_language, _ = langid.classify(query)
+        
+        if predicted_language != "en":  # TODO: add confidence threshold too (see docs to get probability)
+            return {
+                "query": query,
+                "predicted_semantic": None,
+                "model": models[LLMType.STRONG].name,
+                "model_type": LLMType.STRONG,
+                "optimization_metric": None,
+                "based_on": f"Non-English ({predicted_language}), routing to strong model",
+            }
+        else:
+            return {
+                "query": query,
+                "predicted_semantic": None,
+                "model": None,
+                "model_type": None,
+                "optimization_metric": None,
+                "based_on": None,
+            }
+        
 
     @staticmethod
     def _route_based_on_semantic(
@@ -145,14 +179,21 @@ class LLMRouter:
         # First try to route based on optimization factor (if provided, valid and not 'availability') (since availability is handled at the end in case of call failure)
         if (optimization_metric is not None) and (optimization_metric in OptimizationMetric) and (optimization_metric != OptimizationMetric.AVAILABILITY):
             return cls._route_based_on_optimization_metric(query, optimization_metric, models)
+        
+        # Secondly try to route based on query being non-english
+        routing_decision = cls._route_based_on_non_english(query, models)
+        if routing_decision["model_type"] is not None:  # if detected as non-english
+            print("-> Detected non english")
+            return routing_decision
 
-        # Secondly try to route based on query semantics (if semantic routes are provided)
+        # Thirdly try to route based on query semantics (if semantic routes are provided)
         if semantic_routes:
             routing_decision = cls._route_based_on_semantic(query, semantic_router, semantic_routes, models)
-            if routing_decision["predicted_semantic"] is not None:
+            if routing_decision["predicted_semantic"] is not None:  # if a semantic is detected
+                print(f"-> Detected semantic: {routing_decision['predicted_semantic']}")
                 return routing_decision
 
-        # Lastly, if unable to identify query type, find out whether to use strong or weak model using RouteLLM
+        # Lastly, route based on difficulty
         return cls._route_query_based_on_difficulty(query, difficutly_router, models)
 
     @classmethod
