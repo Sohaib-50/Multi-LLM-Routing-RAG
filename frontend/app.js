@@ -1,4 +1,5 @@
 const ai_models = [];
+
 document.addEventListener('DOMContentLoaded', () => {
 
     const app = document.getElementById('app');
@@ -212,8 +213,8 @@ function update_models(event) {
 
 
 function load_chat(chat_id) {
-    console.log(`Loading chat with id: ${chat_id}`);
-    const url = `/api/chat/${chat_id}`;
+    const url = `/api/chat/${chat_id}/`;
+    console.log(`Loading chat with id: ${chat_id}, url: ${url}`);
 
     const chat_interface = document.getElementById('chat-interface');
     const chat_header = chat_interface.querySelector('#chat-header');

@@ -8,3 +8,6 @@ Django
 faiss-cpu
 ragas
 langid
+
+litellm[proxy]
+prisma

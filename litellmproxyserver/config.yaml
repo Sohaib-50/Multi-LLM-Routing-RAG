@@ -1,0 +1,74 @@
+general_settings:
+  master_key: sk-litellm      # enter your own master key, ensure it starts with 'sk-'
+  proxy_batch_write_at: 60 # Batch write spend updates every 60s
+  DATABASE_URL: postgresql://postgres.jhdzqjgdunpcuqnxyiru:_VgsSkpTjFL.N3C@aws-0-ap-south-1.pooler.supabase.com:6543/postgres
+
+
+litellm_settings:
+  set_verbose: true      # Switch off Debug Logging, ensure your logs do not have any debugging on
+  json_logs: false        # Get debug logs in json format
+
+
+model_list: 
+  - model_name: fake-openai-endpoint
+    litellm_params:
+      model: openai/fake
+      api_key: fake-key
+      api_base: https://exampleopenaiendpoint-production.up.railway.app/
+  # - model_name: mistral
+  #   litellm_params:
+  #     model: mistralai/mistral-7b-instruct:free
+  #     api_base: https://openrouter.ai/api/v1
+  #     api_key: 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
+      
+
+# environment_variables:
+#   DATABASE_URL: postgresql://postgres.jhdzqjgdunpcuqnxyiru:_VgsSkpTjFL.N3C@aws-0-ap-south-1.pooler.supabase.com:6543/postgres
+    
+
+
+  # - model_name: gpt-3.5-turbo # user-facing model alias
+  #   litellm_params: # all params accepted by litellm.completion() - https://docs.litellm.ai/docs/completion/input
+  #     model: azure/<your-deployment-name>
+  #     api_base: <your-azure-api-endpoint>
+  #     api_key: <your-azure-api-key>
+  # - model_name: gpt-3.5-turbo
+  #   litellm_params:
+  #     model: azure/gpt-turbo-small-ca
+  #     api_base: https://my-endpoint-canada-berri992.openai.azure.com/
+  #     api_key: <your-azure-api-key>
+  # - model_name: vllm-model
+  #   litellm_params:
+  #     model: openai/<your-model-name>
+  #     api_base: <your-api-base> # e.g. http://0.0.0.0:3000
+
+
+# to run: litellm --config config.yaml --detailed_debug
+
+
+# model_list:
+#   - model_name: gpt-3.5-turbo
+#     litellm_params:
+#       model: azure/<your-deployment-name>
+#       api_base: <your-azure-endpoint>
+#       api_key: <your-azure-api-key>
+#       rpm: 6      # Rate limit for this deployment: in requests per minute (rpm)
+#   - model_name: gpt-3.5-turbo
+#     litellm_params:
+#       model: azure/gpt-turbo-small-ca
+#       api_base: https://my-endpoint-canada-berri992.openai.azure.com/
+#       api_key: <your-azure-api-key>
+#       rpm: 6
+#   - model_name: gpt-3.5-turbo
+#     litellm_params:
+#       model: azure/gpt-turbo-large
+#       api_base: https://openai-france-1234.openai.azure.com/
+#       api_key: <your-azure-api-key>
+#       rpm: 1440
+# routing_strategy: simple-shuffle # Literal["simple-shuffle", "least-busy", "usage-based-routing","latency-based-routing"], default="simple-shuffle"
+#   model_group_alias: {"gpt-4": "gpt-3.5-turbo"} # all requests with `gpt-4` will be routed to models with `gpt-3.5-turbo`
+#   num_retries: 2
+#   timeout: 30                                  # 30 seconds
+#   redis_host: <your redis host>                # set this when using multiple litellm proxy deployments, load balancing state stored in redis
+#   redis_password: <your redis password>
+#   redis_port: 1992

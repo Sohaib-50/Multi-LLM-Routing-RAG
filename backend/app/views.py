@@ -19,7 +19,17 @@ update_models()  # set default models
 
 
 def example_view(request):
-    return JsonResponse({"message": "Hello, World!"})
+    from openai import OpenAI
+    client = OpenAI(api_key='sk-1234', base_url='http://host.docker.internal:4000')
+    response = client.chat.completions.create(
+        model="gpt-3.5",
+        messages=[
+            {"role": "user", "content": "What is the capital of Canada?"},
+        ],
+    )
+    response
+    
+    return JsonResponse({"message": "Hello, World!", "response": response})
 
 
 def all_models(request):
@@ -52,6 +62,7 @@ def get_chat(request, chat_id):
     '''
     Retrieve a chat and its messages with detailed information
     '''
+    print(f"Received get chat request: {str(request.POST)[:500]}...", flush=True)
     try:
         chat_id = int(chat_id)
         chat = Chat.objects.get(id=chat_id)
@@ -78,6 +89,7 @@ def get_chats(request):
     '''
     Retrieve all chats with basic info
     '''
+    print(f"Received get chats request: {str(request.POST)[:500]}...", flush=True)
 
     chats = [
         {
@@ -115,6 +127,7 @@ def create_chat(request):
     return JsonResponse({"chat_id": chat.id, "message": "Chat created successfully"})
 
 
+@csrf_exempt
 def ai_response(request, chat_id):
 
     if request.method != "POST":
@@ -131,8 +144,11 @@ def ai_response(request, chat_id):
     # check if optimization metric is provided and valid
     if (optimization_metric := request.POST.get("optimization_metric")) in OptimizationMetric:
         optimization_metric = OptimizationMetric(optimization_metric)  # enumerate
-        
-    ai_response_data = get_ai_response(query=query, chat_id=chat_id, optimization_metric=optimization_metric)
+    
+    eval_approach = request.POST.get("eval_approach")
+
+    print(f"Received AI response request for chat {chat_id}: {query} use_litellm_proxy={eval_approach}", flush=True)
+    ai_response_data = get_ai_response(query=query, chat_id=chat_id, optimization_metric=optimization_metric, eval_approach=eval_approach)
 
     return JsonResponse(ai_response_data)
 

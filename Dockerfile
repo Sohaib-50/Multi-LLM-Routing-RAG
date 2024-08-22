@@ -5,7 +5,7 @@ FROM python:3.12
 WORKDIR /app
 
 # Copy requirements and install dependencies
-COPY backend/requirements.txt /app/
+COPY requirements.txt /app/
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy project files

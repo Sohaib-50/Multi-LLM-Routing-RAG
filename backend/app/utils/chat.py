@@ -1,7 +1,9 @@
 import os
 from typing import Dict, Optional
-from django.conf import settings
+from dotenv import load_dotenv
 
+from django.conf import settings
+from django.db import transaction
 from langchain_community.vectorstores import FAISS
 from langchain_text_splitters import CharacterTextSplitter
 from langchain_openai import OpenAIEmbeddings
@@ -17,9 +19,10 @@ from app.models import Chat
 from app.utils.llms import LLMs
 
 
+load_dotenv()
 completion = LLMRouter.completion
 
-# Note: This is a function, python magic 😁
+
 get_models: Dict[str, LLMName] = lambda: {
     "strong_model_name": os.environ['STRONG_MODEL_NAME'],
     "weak_model_name": os.environ['WEAK_MODEL_NAME'],
@@ -55,7 +58,7 @@ def create_index(knowledgebase: str, chat_id: int):
     print(f"-> Index created for chat {chat_id}", flush=True)
 
 
-def get_ai_response(query: str, chat_id: int, optimization_metric: Optional[OptimizationMetric] = None):
+def get_ai_response(query: str, chat_id: int, optimization_metric: Optional[OptimizationMetric] = None, eval_approach: str = None) -> Dict:
 
     print(f"-> Getting AI response for chat {chat_id}", flush=True)
 
@@ -88,65 +91,36 @@ def get_ai_response(query: str, chat_id: int, optimization_metric: Optional[Opti
         + messages \
         + [{"role": Role.USER.value, "content": user_query_template.format(query=query)}]
 
-    # # override optimization metric for testing
-    # optimization_metric = OptimizationMetric.LATENCY
-    # get response
-    # response = llm_router.completion(messages=messages, optimization_metric=optimization_metric)
-    # response = completion(
-    #     messages=messages,
-    #     optimization_metric=optimization_metric,
-    #     strong_model_name=os.environ['STRONG_MODEL_NAME'],
-    #     weak_model_name=os.environ['WEAK_MODEL_NAME'],
-    #     semantic_routes=SEMANTIC_ROUTES
-    # )
+    if "litellm_proxy" in eval_approach:
+        client = OpenAI(
+            api_key=os.environ['LITELLM_API_KEY'],
+            base_url="http://host.docker.internal:4000"
+        )
+        if eval_approach == "litellm_proxy_nongpt":
+            model = "mistral"
+        else:
+            model = "gpt-4-omni"
 
-    # make an open ai style completion request but with our own base url'
-    client = OpenAI(base_url="http://localhost:8000/api/")
+    elif eval_approach == "openai":
+        client = OpenAI(
+            api_key=os.environ['OPENAI_API_KEY'],
+        )
+        model = LLMName.GPT_4_O.value
 
-    # setup custom parameters
-    models_info = get_models()
-    strong_model = LLMs[models_info["strong_model_name"]]
-    weak_model = LLMs[models_info["weak_model_name"]]
-    semantics = [
-        {
-            "name": semantic.name,
-            "model_type": semantic.llm_type,
-            "utterances": semantic.utterances,
-        }
-        for semantic in SEMANTIC_ROUTES
-    ]
-
+    print(f"Calling with model {model}", flush=True)
     response = client.chat.completions.create(
-        model="doesntmatter",
+        model=model,
         messages=messages,
-        extra_body={
-            "models": {
-                "strong": {
-                    "model": strong_model.model,
-                    "api_key": strong_model.api_key,
-                    "api_base": strong_model.api_base,
-                },
-                "weak": {
-                    "model": weak_model.model,
-                    "api_key": weak_model.api_key,
-                    "api_base": weak_model.api_base,
-                } 
-            },
-            "optimization_metric": optimization_metric,
-            "semantics": semantics,
-        }
     )
-    
-    # save user message
-    user_message = chat.add_message(content=query, role=Role.USER.value)
+        
+    with transaction.atomic():
 
-    # save ai response
-    ai_message = chat.add_message(content=response.choices[0].message.content, role=Role.ASSISTANT.value,
-                     model_used=response.model, metadata=response.metadata)
+        # save user message
+        user_message = chat.add_message(content=query, role=Role.USER.value)
 
-    # update user message metadata
-    user_message.metadata = {"routing_decision": response.routing_decision}
-    user_message.save()
+        # save ai response
+        ai_message = chat.add_message(content=response.choices[0].message.content, role=Role.ASSISTANT.value,
+                        model_used=response.model, metadata=response.json())
 
     print(f"AI response obtained: {response.choices[0].message.content}\n", flush=True)
 
