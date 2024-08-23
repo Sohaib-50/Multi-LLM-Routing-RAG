@@ -91,6 +91,10 @@ def get_ai_response(query: str, chat_id: int, optimization_metric: Optional[Opti
         + messages \
         + [{"role": Role.USER.value, "content": user_query_template.format(query=query)}]
 
+
+    if not eval_approach:
+        eval_approach = "openai"
+
     if "litellm_proxy" in eval_approach:
         client = OpenAI(
             api_key=os.environ['LITELLM_API_KEY'],
@@ -98,6 +102,10 @@ def get_ai_response(query: str, chat_id: int, optimization_metric: Optional[Opti
         )
         if eval_approach == "litellm_proxy_nongpt":
             model = "mistral"
+        elif eval_approach == "litellm_proxy_bedrock_llama70b":
+            model = "bedrock-llama70b"
+        elif eval_approach == "litellm_proxy_gpt-4":  # fallbacks to bedrock-llama70b
+            model = "gpt-4"
         else:
             model = "gpt-4-omni"
 
