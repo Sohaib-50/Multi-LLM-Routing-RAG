@@ -17,6 +17,31 @@ SEMANTIC_ROUTES = [
             "Ciao",
         ],
     ),
+
+    SemanticRoute(
+        name="ask_to_ask",
+        llm_type=LLMType.WEAK,
+        utterances=[
+            "can you help me?",
+            "i need help.",
+            "please help.",
+            "can you assist me?",
+            "i have a question.",
+            "may I ask a question?",
+            "can you answer my question?",
+            "can I ask for help?",
+            "will you be able to assist me?",
+            "is it okay if I ask something?",
+            "can you respond to my queries?",
+            "tum merey sab sawalaat ke jawaab de sakte ho?",
+            "meri madad kar sakte ho?",
+            "kya tum madad karoge?",
+            "kya tum meri madad kar sakte ho?",
+            "main tumse kuch pooch sakta hoon?",
+            "kya main aap se sawal kar sakta hoon?",
+            "aap meri request sunoge?",
+        ],
+    )
     # SemanticRoute(
     #     name="urdu",
     #     llm_type=LLMType.STRONG,
